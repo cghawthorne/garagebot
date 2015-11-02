@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/stianeikeland/go-rpio"
+	"net/http"
 	"os"
-	"time"
 )
 
 var (
@@ -18,14 +18,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Pull up pin
+	pin.PullUp()
+
 	// Unmap gpio memory when done
 	defer rpio.Close()
 
-	// Pull up and read value
-	pin.PullUp()
+	http.HandleFunc("/", handler)
+	http.ListenAndServe(":80", nil)
+}
 
-	for {
-		fmt.Printf("PullUp: %d\n", pin.Read())
-		time.Sleep(1 * time.Second)
+func handler(w http.ResponseWriter, r *http.Request) {
+	doorStatus := pin.Read()
+	var doorString string
+	if doorStatus == 0 {
+		doorString = "closed"
+	} else {
+		doorString = "open"
 	}
+
+	fmt.Fprintln(w, "Garage door is:", doorString)
 }
