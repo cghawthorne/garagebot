@@ -26,16 +26,17 @@ func main() {
 }
 
 func doorMonitor(queue chan *StatusRequest) {
-	// Open and map memory to access gpio, check for errors
+	// Open and map memory to access gpio, check for errors.
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
+	// Unmap gpio memory when done.
+	defer rpio.Close()
 
 	pin := rpio.Pin(23)
-
-	// Pull up pin
 	pin.PullUp()
 
+	// Process request queue.
 	for req := range queue {
 		doorStatus := pin.Read()
 		if doorStatus == 0 {
@@ -44,9 +45,6 @@ func doorMonitor(queue chan *StatusRequest) {
 			req.resultChan <- OPEN
 		}
 	}
-
-	// Unmap gpio memory when done
-	defer rpio.Close()
 }
 
 type StatusPage struct {
