@@ -4,34 +4,61 @@ import (
 	"fmt"
 	"github.com/stianeikeland/go-rpio"
 	"net/http"
-	"os"
 )
 
-var (
-	pin = rpio.Pin(23)
+type DoorStatus int
+
+const (
+	OPEN DoorStatus = iota
+	CLOSED
 )
+
+type StatusRequest struct {
+	resultChan chan DoorStatus
+}
 
 func main() {
+	statusChan := make(chan *StatusRequest)
+	go doorMonitor(statusChan)
+
+	http.Handle("/", &StatusPage{statusChan})
+	http.ListenAndServe(":80", nil)
+}
+
+func doorMonitor(queue chan *StatusRequest) {
 	// Open and map memory to access gpio, check for errors
 	if err := rpio.Open(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
+
+	pin := rpio.Pin(23)
 
 	// Pull up pin
 	pin.PullUp()
 
+	for req := range queue {
+		doorStatus := pin.Read()
+		if doorStatus == 0 {
+			req.resultChan <- CLOSED
+		} else {
+			req.resultChan <- OPEN
+		}
+	}
+
 	// Unmap gpio memory when done
 	defer rpio.Close()
-
-	http.HandleFunc("/", handler)
-	http.ListenAndServe(":80", nil)
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	doorStatus := pin.Read()
+type StatusPage struct {
+	statusChan chan *StatusRequest
+}
+
+func (s *StatusPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	req := &StatusRequest{make(chan DoorStatus)}
+	s.statusChan <- req
+	doorStatus := <-req.resultChan
 	var doorString string
-	if doorStatus == 0 {
+	if doorStatus == CLOSED {
 		doorString = "closed"
 	} else {
 		doorString = "open"
