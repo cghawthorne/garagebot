@@ -52,7 +52,7 @@ type StatusPage struct {
 }
 
 func (s *StatusPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	req := &StatusRequest{make(chan DoorStatus)}
+	req := &StatusRequest{make(chan DoorStatus, 1)}
 	s.statusChan <- req
 	doorStatus := <-req.resultChan
 	var doorString string
