@@ -49,25 +49,25 @@ type StatusRequest struct {
 func main() {
 	log.Print("Starting up")
 
-	statusRequests := make(chan *StatusRequest)
-	statusUpdates := make(chan DoorStatus, 1)
-	go doorMonitor(statusRequests, statusUpdates)
-	go dbUpdater(statusUpdates)
-
-	http.Handle("/", &StatusPage{statusRequests})
-	http.ListenAndServe(":80", nil)
-}
-
-func dbUpdater(statusUpdates chan DoorStatus) {
 	db, err := sql.Open("mysql", dbUser+":"+dbPassword+"@unix("+dbSock+")/"+dbName)
 	if err != nil {
 		log.Print("Error connecting to database:", err)
 	}
 
+	statusRequests := make(chan *StatusRequest)
+	statusUpdates := make(chan DoorStatus, 1)
+	go doorMonitor(statusRequests, statusUpdates)
+	go dbUpdater(db, statusUpdates)
+
+	http.Handle("/", &StatusPage{statusRequests, db})
+	http.ListenAndServe(":80", nil)
+}
+
+func dbUpdater(db *sql.DB, statusUpdates chan DoorStatus) {
 	for {
 		update := <-statusUpdates
 		log.Print("Updating database:", update)
-		_, err = db.Exec("INSERT INTO events (type) VALUES (?)",
+		_, err := db.Exec("INSERT INTO events (type) VALUES (?)",
 			update.String())
 		if err != nil {
 			log.Print("Error writing to database:", err)
@@ -119,6 +119,7 @@ func doorMonitor(statusRequests chan *StatusRequest, statusUpdates chan DoorStat
 
 type StatusPage struct {
 	statusChan chan *StatusRequest
+	db         *sql.DB
 }
 
 func makeStatusRequest() *StatusRequest {
@@ -129,6 +130,20 @@ func (s *StatusPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req := makeStatusRequest()
 	s.statusChan <- req
 	doorStatus := <-req.resultChan
-
 	fmt.Fprintln(w, "Garage door is:", doorStatus)
+	fmt.Fprintln(w)
+
+	rows, err := s.db.Query("SELECT ts, type FROM events ORDER BY ts DESC LIMIT 50")
+	if err != nil {
+		log.Print("Error querying database: ", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ts, eventType string
+		if err := rows.Scan(&ts, &eventType); err != nil {
+			log.Print("Error scanning row: ", err)
+			continue
+		}
+		fmt.Fprintln(w, ts, " ", eventType)
+	}
 }
