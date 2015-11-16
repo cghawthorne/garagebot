@@ -1,0 +1,11 @@
+{
+	"Database": {
+		"DbName": "garagebot",
+		"DbUser": "garagebot",
+		"DbPassword": "garagebot",
+		"DbSock": "/var/run/mysqld/mysqld.sock"
+	},
+	"Polling": {
+		"IntervalMillis": 1000
+	}
+}

@@ -31,17 +31,6 @@ func (ds DoorStatus) String() string {
 	}
 }
 
-const (
-	pollInterval = 1 * time.Second // how frequently to poll door status
-)
-
-const (
-	dbName     = "garagebot"
-	dbUser     = "garagebot"
-	dbPassword = "garagebot"
-	dbSock     = "/var/run/mysqld/mysqld.sock"
-)
-
 type StatusRequest struct {
 	resultChan chan DoorStatus
 }
@@ -49,14 +38,18 @@ type StatusRequest struct {
 func main() {
 	log.Print("Starting up")
 
-	db, err := sql.Open("mysql", dbUser+":"+dbPassword+"@unix("+dbSock+")/"+dbName)
+	config := readConfiguration()
+
+	db, err := sql.Open("mysql",
+		config.Database.DbUser+":"+config.Database.DbPassword+
+			"@unix("+config.Database.DbSock+")/"+config.Database.DbName)
 	if err != nil {
 		log.Print("Error connecting to database:", err)
 	}
 
 	statusRequests := make(chan *StatusRequest)
 	statusUpdates := make(chan DoorStatus, 1)
-	go doorMonitor(statusRequests, statusUpdates)
+	go doorMonitor(config, statusRequests, statusUpdates)
 	go dbUpdater(db, statusUpdates)
 
 	http.Handle("/", &StatusPage{statusRequests, db})
@@ -75,7 +68,7 @@ func dbUpdater(db *sql.DB, statusUpdates chan DoorStatus) {
 	}
 }
 
-func doorMonitor(statusRequests chan *StatusRequest, statusUpdates chan DoorStatus) {
+func doorMonitor(config *Configuration, statusRequests chan *StatusRequest, statusUpdates chan DoorStatus) {
 	// Open and map memory to access gpio, check for errors.
 	if err := rpio.Open(); err != nil {
 		log.Panic(err)
@@ -91,7 +84,7 @@ func doorMonitor(statusRequests chan *StatusRequest, statusUpdates chan DoorStat
 	lastStatus := STARTUP
 	statusUpdates <- doorStatus
 
-	ticker := time.NewTicker(pollInterval)
+	ticker := time.NewTicker(time.Duration(config.Polling.IntervalMillis) * time.Millisecond)
 	for {
 		select {
 		case <-ticker.C:
