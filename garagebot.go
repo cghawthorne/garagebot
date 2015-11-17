@@ -47,9 +47,7 @@ func main() {
 		log.Print("Error connecting to database:", err)
 	}
 
-	statusRequests := make(chan *StatusRequest)
-	statusUpdates := make(chan DoorStatus, 1)
-	go doorMonitor(config, statusRequests, statusUpdates)
+	statusRequests, statusUpdates := doorMonitor(config)
 	go dbUpdater(db, statusUpdates)
 
 	http.Handle("/", &StatusPage{statusRequests, db})
@@ -68,46 +66,53 @@ func dbUpdater(db *sql.DB, statusUpdates chan DoorStatus) {
 	}
 }
 
-func doorMonitor(config *Configuration, statusRequests chan *StatusRequest, statusUpdates chan DoorStatus) {
-	// Open and map memory to access gpio, check for errors.
-	if err := rpio.Open(); err != nil {
-		log.Panic(err)
-	}
-	// Unmap gpio memory when done.
-	defer rpio.Close()
+func doorMonitor(config *Configuration) (chan *StatusRequest, chan DoorStatus) {
+	statusRequests := make(chan *StatusRequest)
+	statusUpdates := make(chan DoorStatus, 1)
 
-	// Initialize the pin and turn on the pull-up resistor.
-	pin := rpio.Pin(23)
-	pin.PullUp()
-
-	doorStatus := STARTUP
-	lastStatus := STARTUP
-	statusUpdates <- doorStatus
-
-	ticker := time.NewTicker(time.Duration(config.Polling.IntervalMillis) * time.Millisecond)
-	for {
-		select {
-		case <-ticker.C:
-			var curStatus DoorStatus
-			// read door status
-			if pin.Read() == 0 {
-				curStatus = CLOSED
-			} else {
-				curStatus = OPEN
-			}
-
-			if curStatus == lastStatus {
-				// Same status twice in a row, assume it's real.
-				if doorStatus != curStatus {
-					doorStatus = curStatus
-					statusUpdates <- doorStatus
-				}
-			}
-			lastStatus = curStatus
-		case req := <-statusRequests:
-			req.resultChan <- doorStatus
+	go func() {
+		// Open and map memory to access gpio, check for errors.
+		if err := rpio.Open(); err != nil {
+			log.Panic(err)
 		}
-	}
+		// Unmap gpio memory when done.
+		defer rpio.Close()
+
+		// Initialize the pin and turn on the pull-up resistor.
+		pin := rpio.Pin(23)
+		pin.PullUp()
+
+		doorStatus := STARTUP
+		lastStatus := STARTUP
+		statusUpdates <- doorStatus
+
+		ticker := time.NewTicker(time.Duration(config.Polling.IntervalMillis) * time.Millisecond)
+		for {
+			select {
+			case <-ticker.C:
+				var curStatus DoorStatus
+				// read door status
+				if pin.Read() == 0 {
+					curStatus = CLOSED
+				} else {
+					curStatus = OPEN
+				}
+
+				if curStatus == lastStatus {
+					// Same status twice in a row, assume it's real.
+					if doorStatus != curStatus {
+						doorStatus = curStatus
+						statusUpdates <- doorStatus
+					}
+				}
+				lastStatus = curStatus
+			case req := <-statusRequests:
+				req.resultChan <- doorStatus
+			}
+		}
+	}()
+
+	return statusRequests, statusUpdates
 }
 
 type StatusPage struct {
