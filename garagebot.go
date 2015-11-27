@@ -32,8 +32,10 @@ func (ds DoorStatus) String() string {
 }
 
 type StatusRequest struct {
-	resultChan chan DoorStatus
+	resultChan StatusUpdateChan
 }
+
+type StatusUpdateChan chan DoorStatus
 
 func main() {
 	log.Print("Starting up")
@@ -47,14 +49,21 @@ func main() {
 		log.Print("Error connecting to database:", err)
 	}
 
+	log.Print("Initializing door monitor")
 	statusRequests, statusUpdates := doorMonitor(config)
-	go dbUpdater(db, statusUpdates)
 
+	log.Print("Initializating dispatcher")
+	dispatcher := createDispatcher(statusUpdates)
+
+	log.Print("Initializating database updater")
+	go dbUpdater(db, dispatcher.createListener())
+
+	log.Print("Initializating http server")
 	http.Handle("/", &StatusPage{statusRequests, db})
 	http.ListenAndServe(":80", nil)
 }
 
-func dbUpdater(db *sql.DB, statusUpdates chan DoorStatus) {
+func dbUpdater(db *sql.DB, statusUpdates StatusUpdateChan) {
 	for {
 		update := <-statusUpdates
 		log.Print("Updating database:", update)
@@ -66,9 +75,9 @@ func dbUpdater(db *sql.DB, statusUpdates chan DoorStatus) {
 	}
 }
 
-func doorMonitor(config *Configuration) (chan *StatusRequest, chan DoorStatus) {
+func doorMonitor(config *Configuration) (chan *StatusRequest, StatusUpdateChan) {
 	statusRequests := make(chan *StatusRequest)
-	statusUpdates := make(chan DoorStatus, 1)
+	statusUpdates := make(StatusUpdateChan, 1)
 
 	go func() {
 		// Open and map memory to access gpio, check for errors.
@@ -121,7 +130,7 @@ type StatusPage struct {
 }
 
 func makeStatusRequest() *StatusRequest {
-	return &StatusRequest{make(chan DoorStatus, 1)}
+	return &StatusRequest{make(StatusUpdateChan, 1)}
 }
 
 func (s *StatusPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
