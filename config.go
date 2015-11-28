@@ -19,6 +19,10 @@ type Configuration struct {
 	Notifications struct {
 		TimeoutMillis int
 		Emails        []string
+		From          string
+		Password      string
+		Server        string
+		Port          int
 	}
 }
 

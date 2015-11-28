@@ -10,6 +10,10 @@
 	},
 	"Notifications": {
 		"TimeoutMillis": 1000,
-		"Emails": ["example@example.com"]
+		"Emails": ["example@example.com"],
+		"From": "example@example.com",
+		"Password": "password",
+		"Server": "smtp.gmail.com",
+		"Port": 587
 	}
 }
