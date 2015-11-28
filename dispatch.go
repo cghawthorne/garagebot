@@ -27,7 +27,7 @@ func createDispatcher(statusUpdates StatusUpdateChan) *Dispatcher {
 				req.resultChan <- listener
 			case update := <-dispatcher.sender:
 				log.Print("Got update!")
-				for i, listener := range dispatcher.listeners {
+				for _, listener := range dispatcher.listeners {
 					listener <- update
 				}
 			}

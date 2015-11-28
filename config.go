@@ -16,6 +16,10 @@ type Configuration struct {
 	Polling struct {
 		IntervalMillis int
 	}
+	Notifications struct {
+		TimeoutMillis int
+		Emails        []string
+	}
 }
 
 const (

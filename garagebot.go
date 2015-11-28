@@ -57,6 +57,7 @@ func main() {
 
 	log.Print("Initializating database updater")
 	go dbUpdater(db, dispatcher.createListener())
+	go notifier(config, dispatcher.createListener())
 
 	log.Print("Initializating http server")
 	http.Handle("/", &StatusPage{statusRequests, db})

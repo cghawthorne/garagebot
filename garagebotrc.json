@@ -7,5 +7,9 @@
 	},
 	"Polling": {
 		"IntervalMillis": 1000
+	},
+	"Notifications": {
+		"TimeoutMillis": 1000,
+		"Emails": ["example@example.com"]
 	}
 }
