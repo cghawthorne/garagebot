@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stianeikeland/go-rpio"
 	"log"
@@ -57,10 +56,12 @@ func main() {
 
 	log.Print("Initializating database updater")
 	go dbUpdater(db, dispatcher.createListener())
+
+	log.Print("Initializating notifier")
 	go notifier(config, dispatcher.createListener())
 
 	log.Print("Initializating http server")
-	http.Handle("/", &StatusPage{statusRequests, db})
+	http.Handle("/", createStatusPage(statusRequests, db, config))
 	http.ListenAndServe(":80", nil)
 }
 
@@ -123,35 +124,4 @@ func doorMonitor(config *Configuration) (chan *StatusRequest, StatusUpdateChan) 
 	}()
 
 	return statusRequests, statusUpdates
-}
-
-type StatusPage struct {
-	statusChan chan *StatusRequest
-	db         *sql.DB
-}
-
-func makeStatusRequest() *StatusRequest {
-	return &StatusRequest{make(StatusUpdateChan, 1)}
-}
-
-func (s *StatusPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	req := makeStatusRequest()
-	s.statusChan <- req
-	doorStatus := <-req.resultChan
-	fmt.Fprintln(w, "Garage door is:", doorStatus)
-	fmt.Fprintln(w)
-
-	rows, err := s.db.Query("SELECT ts, type FROM events ORDER BY ts DESC LIMIT 50")
-	if err != nil {
-		log.Print("Error querying database: ", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var ts, eventType string
-		if err := rows.Scan(&ts, &eventType); err != nil {
-			log.Print("Error scanning row: ", err)
-			continue
-		}
-		fmt.Fprintln(w, ts, " ", eventType)
-	}
 }

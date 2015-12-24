@@ -24,6 +24,7 @@ type Configuration struct {
 		Server        string
 		Port          int
 	}
+	Users map[string]string
 }
 
 const (
