@@ -15,5 +15,8 @@
 		"Password": "password",
 		"Server": "smtp.gmail.com",
 		"Port": 587
+	},
+	"Users": {
+		"example_user": "echo -n 'example_user:garagebot:password' | md5sum"
 	}
 }
