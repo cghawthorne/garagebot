@@ -38,6 +38,7 @@ type StatusRequest struct {
 type StatusUpdateChan chan DoorStatus
 
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	log.SetOutput(&lumberjack.Logger{
 		Filename:   "/var/log/garagebot.log",
 		MaxSize:    5, // megabytes
@@ -66,6 +67,8 @@ func main() {
 
 	log.Print("Initializating notifier")
 	go notifier(config, dispatcher.createListener())
+
+	dispatcher.startDispatch()
 
 	log.Print("Initializating http server")
 	http.Handle("/", createStatusPage(statusRequests, db, config))
