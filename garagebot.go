@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stianeikeland/go-rpio"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"log"
 	"net/http"
 	"time"
@@ -37,6 +38,12 @@ type StatusRequest struct {
 type StatusUpdateChan chan DoorStatus
 
 func main() {
+	log.SetOutput(&lumberjack.Logger{
+		Filename:   "/var/log/garagebot.log",
+		MaxSize:    5, // megabytes
+		MaxBackups: 10,
+	})
+
 	log.Print("Starting up")
 
 	config := readConfiguration()
