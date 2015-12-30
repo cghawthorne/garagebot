@@ -9,15 +9,12 @@ import (
 )
 
 type StatusPage struct {
-	statusChan    chan *StatusRequest
-	db            *sql.DB
-	config        *Configuration
-	authenticator auth.AuthenticatorInterface
+	statusChan chan *StatusRequest
+	db         *sql.DB
 }
 
-func createStatusPage(statusChan chan *StatusRequest, db *sql.DB, config *Configuration) *StatusPage {
-	statusPage := &StatusPage{statusChan: statusChan, db: db, config: config}
-	statusPage.authenticator = auth.NewDigestAuthenticator("garagebot", statusPage.secret)
+func createStatusPage(statusChan chan *StatusRequest, db *sql.DB) *StatusPage {
+	statusPage := &StatusPage{statusChan: statusChan, db: db}
 	return statusPage
 }
 
@@ -25,15 +22,7 @@ func makeStatusRequest() *StatusRequest {
 	return &StatusRequest{make(StatusUpdateChan, 1)}
 }
 
-func (s *StatusPage) secret(user, realm string) string {
-	return s.config.Users[user]
-}
-
-func (s *StatusPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.authenticator.Wrap(s.serveAuthenticatedHTTP)(w, r)
-}
-
-func (s *StatusPage) serveAuthenticatedHTTP(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+func (s *StatusPage) handle(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	req := makeStatusRequest()
 	s.statusChan <- req
 	doorStatus := <-req.resultChan

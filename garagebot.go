@@ -71,7 +71,11 @@ func main() {
 	dispatcher.startDispatch()
 
 	log.Print("Initializating http server")
-	http.Handle("/", createStatusPage(statusRequests, db, config))
+	page := createPage(config)
+
+	statusPage := createStatusPage(statusRequests, db)
+	http.HandleFunc("/", page.wrap(statusPage.handle))
+
 	http.ListenAndServe(":80", nil)
 }
 
