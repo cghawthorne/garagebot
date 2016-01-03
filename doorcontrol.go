@@ -32,7 +32,7 @@ func (state DoorControlState) String() string {
 	}
 }
 
-func createDoorControl(db *sql.DB) *DoorControl {
+func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 	doorControl := &DoorControl{db, make(chan DoorControlState)}
 	pin := rpio.Pin(24)
 	pin.Output()
@@ -62,7 +62,7 @@ func createDoorControl(db *sql.DB) *DoorControl {
 				pin.Low()
 				state = CIRCUIT_ACTIVE
 				// turn off the circuit after a delay
-				time.AfterFunc(time.Duration(2)*time.Second, func() {
+				time.AfterFunc(time.Duration(config.DoorControl.ActivationPeriodMillis)*time.Millisecond, func() {
 					log.Print("Requesting circuit deactivation")
 					doorControl.doorControlRequest <- IDLE
 				})

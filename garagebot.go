@@ -83,7 +83,7 @@ func main() {
 	statusPage := createStatusPage(statusRequests, db)
 	http.HandleFunc("/", page.wrap(statusPage.handle))
 
-	doorControl := createDoorControl(db)
+	doorControl := createDoorControl(db, config)
 	http.HandleFunc("/doorcontrol", page.wrap(doorControl.handle))
 
 	http.ListenAndServe(":80", nil)

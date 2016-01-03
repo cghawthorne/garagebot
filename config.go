@@ -24,6 +24,9 @@ type Configuration struct {
 		Server        string
 		Port          int
 	}
+	DoorControl struct {
+		ActivationPeriodMillis int
+	}
 	Users map[string]string
 }
 

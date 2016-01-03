@@ -18,5 +18,8 @@
 	},
 	"Users": {
 		"example_user": "echo -n 'example_user:garagebot:password' | md5sum"
+	},
+	"DoorControl": {
+		"ActivationPeriodMillis": 2000
 	}
 }
