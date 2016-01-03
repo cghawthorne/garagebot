@@ -47,6 +47,13 @@ func main() {
 
 	log.Print("Starting up")
 
+	// Open and map memory to access gpio, check for errors.
+	if err := rpio.Open(); err != nil {
+		log.Panic("Error opening GPIO interface:", err)
+	}
+	// Unmap gpio memory when done.
+	defer rpio.Close()
+
 	config := readConfiguration()
 
 	db, err := sql.Open("mysql",
@@ -76,6 +83,9 @@ func main() {
 	statusPage := createStatusPage(statusRequests, db)
 	http.HandleFunc("/", page.wrap(statusPage.handle))
 
+	doorControl := createDoorControl(db)
+	http.HandleFunc("/doorcontrol", page.wrap(doorControl.handle))
+
 	http.ListenAndServe(":80", nil)
 }
 
@@ -96,13 +106,6 @@ func doorMonitor(config *Configuration) (chan *StatusRequest, StatusUpdateChan) 
 	statusUpdates := make(StatusUpdateChan, 1)
 
 	go func() {
-		// Open and map memory to access gpio, check for errors.
-		if err := rpio.Open(); err != nil {
-			log.Panic(err)
-		}
-		// Unmap gpio memory when done.
-		defer rpio.Close()
-
 		// Initialize the pin and turn on the pull-up resistor.
 		pin := rpio.Pin(23)
 		pin.PullUp()

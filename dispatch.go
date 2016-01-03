@@ -45,7 +45,7 @@ func createDispatcher(statusUpdates StatusUpdateChan) *Dispatcher {
 			case <-dispatcher.startDispatchingRequestChan:
 				log.Print("Got request to enter dispatch mode, but already in dispatch mode! Ignoring!")
 			case update := <-dispatcher.input:
-				log.Print("Got update!")
+				log.Printf("Got update:%s", update)
 				for _, listener := range dispatcher.listeners {
 					listener <- update
 				}
