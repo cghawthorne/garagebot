@@ -64,18 +64,19 @@ func (s *StatusPage) handle(w http.ResponseWriter, r *auth.AuthenticatedRequest)
 	statusPageData.DoorStatus = (<-req.resultChan).String()
 
 	var buffer bytes.Buffer
-	rows, err := s.db.Query("SELECT ts, type FROM events ORDER BY ts DESC LIMIT 50")
+	rows, err := s.db.Query("SELECT ts, type, username FROM events ORDER BY ts DESC LIMIT 50")
 	if err != nil {
 		log.Print("Error querying database: ", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var ts, eventType string
-		if err := rows.Scan(&ts, &eventType); err != nil {
+		var username sql.NullString
+		if err := rows.Scan(&ts, &eventType, &username); err != nil {
 			log.Print("Error scanning row: ", err)
 			continue
 		}
-		fmt.Fprintln(&buffer, ts, " ", eventType)
+		fmt.Fprintln(&buffer, ts, " ", eventType, " ", username)
 	}
 
 	statusPageData.DoorLog = buffer.String()

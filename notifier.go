@@ -44,7 +44,7 @@ func notifier(config *Configuration, statusUpdates StatusUpdateChan) {
 					config.Notifications.From, config.Notifications.Emails, []byte(msg))
 
 				if err != nil {
-					log.Printf("smtp error: %s", err)
+					log.Printf("smtp error: %v", err)
 				}
 			}
 		case update := <-statusUpdates:

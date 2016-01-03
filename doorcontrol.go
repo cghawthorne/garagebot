@@ -10,8 +10,7 @@ import (
 )
 
 type DoorControl struct {
-	db                 *sql.DB
-	doorControlRequest chan DoorControlState
+	doorControlRequest chan *DoorControlRequest
 }
 
 type DoorControlState int
@@ -32,8 +31,13 @@ func (state DoorControlState) String() string {
 	}
 }
 
+type DoorControlRequest struct {
+	Username string
+	State    DoorControlState
+}
+
 func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
-	doorControl := &DoorControl{db, make(chan DoorControlState)}
+	doorControl := &DoorControl{make(chan *DoorControlRequest)}
 	pin := rpio.Pin(24)
 	pin.Output()
 	pin.High() // High == relay off
@@ -41,33 +45,43 @@ func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 	go func() {
 		state := IDLE
 		for req := range doorControl.doorControlRequest {
-			log.Printf("Got door control request: %s", req)
-			switch req {
+			log.Printf("Got door control request: %v", req)
+			switch req.State {
 			case IDLE:
 				if state != CIRCUIT_ACTIVE {
-					log.Printf("Ignoring invalid state transition (%s to %s)", state, req)
+					log.Printf("Ignoring invalid state transition (%v to %v)", state, req.State)
 					break
 				}
-				// turn off circuit
 				log.Print("Deactivating circuit")
+				_, err := db.Exec("INSERT INTO events (type, username) VALUES (?, ?)",
+					"deactivate", req.Username)
+				if err != nil {
+					log.Print("Error writing to database:", err)
+				}
+				// turn off circuit
 				pin.High()
 				state = IDLE
 			case CIRCUIT_ACTIVE:
 				if state != IDLE {
-					log.Printf("Ignoring invalid state transition (%s to %s)", state, req)
+					log.Printf("Ignoring invalid state transition (%v to %v)", state, req.State)
 					break
 				}
 				log.Print("Activating circuit")
+				_, err := db.Exec("INSERT INTO events (type, username) VALUES (?, ?)",
+					"activate", req.Username)
+				if err != nil {
+					log.Print("Error writing to database:", err)
+				}
 				// turn on circuit
 				pin.Low()
 				state = CIRCUIT_ACTIVE
 				// turn off the circuit after a delay
 				time.AfterFunc(time.Duration(config.DoorControl.ActivationPeriodMillis)*time.Millisecond, func() {
 					log.Print("Requesting circuit deactivation")
-					doorControl.doorControlRequest <- IDLE
+					doorControl.doorControlRequest <- &DoorControlRequest{req.Username, IDLE}
 				})
 			default:
-				log.Printf("Ignoring request for unknown state %s", req)
+				log.Printf("Ignoring request for unknown state %v", req.State)
 			}
 		}
 	}()
@@ -83,6 +97,6 @@ func (d *DoorControl) handle(w http.ResponseWriter, r *auth.AuthenticatedRequest
 	}
 
 	log.Print("Requesting circuit activation")
-	d.doorControlRequest <- CIRCUIT_ACTIVE
+	d.doorControlRequest <- &DoorControlRequest{r.Username, CIRCUIT_ACTIVE}
 	http.Redirect(w, &r.Request, "", http.StatusFound)
 }
