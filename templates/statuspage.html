@@ -6,9 +6,17 @@
 	<p>Hello, {{.Username}}</p>
 	<p>Garage door is: {{.DoorStatus}}</p>
 	<hr>
-	<pre>{{.DoorLog}}</pre>
+	<table>
+		{{range .DoorLog}}
+		<tr>
+			<td>{{.Time}}</td>
+			<td>{{.Type}}</td>
+			<td>{{if .Username.Valid}}{{.Username.Value}}{{end}}</td>
+		</tr>
+		{{end}}
+	</table>
 	<hr>
-	<form action="doorcontrol" method="POST">
+	<form action="doorcontrol" method="POST" onsubmit="return confirm('Are you sure you want to activate the door?');">
 		<input type="submit" value="Activate Door">
 	</form>
 </body>

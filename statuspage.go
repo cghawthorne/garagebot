@@ -1,15 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
-	"fmt"
 	"github.com/abbot/go-http-auth"
 	"github.com/kardianos/osext"
 	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 )
 
 type StatusPage struct {
@@ -21,7 +20,13 @@ type StatusPage struct {
 type StatusPageData struct {
 	Username   string
 	DoorStatus string
-	DoorLog    string
+	DoorLog    []*DoorEvent
+}
+
+type DoorEvent struct {
+	Time     string
+	Type     string
+	Username sql.NullString
 }
 
 func createStatusPage(statusChan chan *StatusRequest, db *sql.DB) *StatusPage {
@@ -63,23 +68,24 @@ func (s *StatusPage) handle(w http.ResponseWriter, r *auth.AuthenticatedRequest)
 	s.statusChan <- req
 	statusPageData.DoorStatus = (<-req.resultChan).String()
 
-	var buffer bytes.Buffer
-	rows, err := s.db.Query("SELECT ts, type, username FROM events ORDER BY ts DESC LIMIT 50")
+	rows, err := s.db.Query("SELECT ts, type, username FROM events WHERE ts >= NOW() - INTERVAL 1 WEEK ORDER BY ts DESC LIMIT 1000")
 	if err != nil {
 		log.Print("Error querying database: ", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var ts, eventType string
-		var username sql.NullString
-		if err := rows.Scan(&ts, &eventType, &username); err != nil {
+		doorEvent := &DoorEvent{}
+		statusPageData.DoorLog = append(statusPageData.DoorLog, doorEvent)
+		var ts time.Time
+		if err := rows.Scan(&ts, &doorEvent.Type, &doorEvent.Username); err != nil {
 			log.Print("Error scanning row: ", err)
 			continue
 		}
-		fmt.Fprintln(&buffer, ts, " ", eventType, " ", username)
+		doorEvent.Time = ts.Format("2006-01-02 3:04 PM")
 	}
 
-	statusPageData.DoorLog = buffer.String()
-
-	s.template.Execute(w, statusPageData)
+	err = s.template.Execute(w, statusPageData)
+	if err != nil {
+		log.Print("Error executing template: ", err)
+	}
 }

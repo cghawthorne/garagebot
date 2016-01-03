@@ -58,7 +58,7 @@ func main() {
 
 	db, err := sql.Open("mysql",
 		config.Database.DbUser+":"+config.Database.DbPassword+
-			"@unix("+config.Database.DbSock+")/"+config.Database.DbName)
+			"@unix("+config.Database.DbSock+")/"+config.Database.DbName+"?parseTime=true")
 	if err != nil {
 		log.Print("Error connecting to database:", err)
 	}
