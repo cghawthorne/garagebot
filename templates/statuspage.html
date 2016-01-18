@@ -2,16 +2,45 @@
 <head>
 	<title>Garagebot</title>
 	<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+	<style>
+		.event:first-child .open,
+		.event:first-child .activate,
+		.event:first-child .deactivate,
+		.current .open,
+		.current .activate,
+		.current .deactivate {
+			color: white;
+			background-color: red;
+		}
+		.event:first-child .closed,
+		.current .closed {
+			color: white;
+			background-color: green;
+		}
+		.open,
+		.activate,
+		.deactivate {
+			background-color: lightpink;
+		}
+		.closed {
+			background-color: lightgreen;
+		}
+		.startup {
+			color: gray;
+		}
+	</style>
 </head>
 <body>
 	<p>Hello, {{.Username}}</p>
-	<p>Garage door is: {{.DoorStatus}}</p>
+	<div class="current">
+		<p>Garage door is: <span class="{{.DoorStatus}}">{{.DoorStatus}}</span></p>
+	</div>
 	<hr>
 	<table>
 		{{range .DoorLog}}
-		<tr>
+		<tr class="event">
 			<td>{{.Time}}</td>
-			<td>{{.Type}}</td>
+			<td class="{{.Type}}">{{.Type}}</td>
 			<td>{{if .Username.Valid}}{{.Username.Value}}{{end}}</td>
 		</tr>
 		{{end}}
