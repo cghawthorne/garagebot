@@ -16,10 +16,13 @@
 		"Server": "smtp.gmail.com",
 		"Port": 587
 	},
-	"Users": {
-		"example_user": "echo -n 'example_user:garagebot:password' | md5sum"
-	},
+	"Users": ["example@example.com"],
 	"DoorControl": {
 		"ActivationPeriodMillis": 2000
+	},
+	"Cloudflare": {
+		"TeamDomain": "https://test.cloudflareaccess.com",
+		"AUD": "asdf"
 	}
+
 }

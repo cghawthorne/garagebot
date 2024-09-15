@@ -27,7 +27,11 @@ type Configuration struct {
 	DoorControl struct {
 		ActivationPeriodMillis int
 	}
-	Users map[string]string
+	Users      []string
+	Cloudflare struct {
+		TeamDomain string
+		AUD        string
+	}
 }
 
 const (

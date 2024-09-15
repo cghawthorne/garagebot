@@ -3,7 +3,8 @@ package main
 import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/stianeikeland/go-rpio"
+	"github.com/warthog618/go-gpiocdev"
+	"github.com/warthog618/go-gpiocdev/device/rpi"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"log"
 	"net/http"
@@ -47,20 +48,13 @@ func main() {
 
 	log.Print("Starting up")
 
-	// Open and map memory to access gpio, check for errors.
-	if err := rpio.Open(); err != nil {
-		log.Panic("Error opening GPIO interface:", err)
-	}
-	// Unmap gpio memory when done.
-	defer rpio.Close()
-
 	config := readConfiguration()
 
 	db, err := sql.Open("mysql",
 		config.Database.DbUser+":"+config.Database.DbPassword+
 			"@unix("+config.Database.DbSock+")/"+config.Database.DbName+"?parseTime=true")
 	if err != nil {
-		log.Print("Error connecting to database:", err)
+		log.Print("Error connecting to database: ", err)
 	}
 
 	log.Print("Initializing door monitor")
@@ -86,7 +80,7 @@ func main() {
 	doorControl := createDoorControl(db, config)
 	http.HandleFunc("/doorcontrol", page.wrap(doorControl.handle))
 
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":8080", nil)
 }
 
 func dbUpdater(db *sql.DB, statusUpdates StatusUpdateChan) {
@@ -96,7 +90,7 @@ func dbUpdater(db *sql.DB, statusUpdates StatusUpdateChan) {
 		_, err := db.Exec("INSERT INTO events (type) VALUES (?)",
 			update.String())
 		if err != nil {
-			log.Print("Error writing to database:", err)
+			log.Print("Error writing to database: ", err)
 		}
 	}
 }
@@ -106,9 +100,12 @@ func doorMonitor(config *Configuration) (chan *StatusRequest, StatusUpdateChan) 
 	statusUpdates := make(StatusUpdateChan, 1)
 
 	go func() {
-		// Initialize the pin and turn on the pull-up resistor.
-		pin := rpio.Pin(23)
-		pin.PullUp()
+		// Initialize the line and turn on the pull-up resistor.
+		line, err := gpiocdev.RequestLine("gpiochip0", rpi.J8p16, gpiocdev.AsInput, gpiocdev.WithPullUp)
+		if err != nil {
+			log.Print("Error initializing line: ", err)
+		}
+		defer line.Close()
 
 		doorStatus := STARTUP
 		lastStatus := STARTUP
@@ -120,7 +117,11 @@ func doorMonitor(config *Configuration) (chan *StatusRequest, StatusUpdateChan) 
 			case <-ticker.C:
 				var curStatus DoorStatus
 				// read door status
-				if pin.Read() == 0 {
+				lineStatus, err := line.Value()
+				if err != nil {
+					log.Print("Error reading line: ", err)
+				}
+				if lineStatus == 0 {
 					curStatus = CLOSED
 				} else {
 					curStatus = OPEN

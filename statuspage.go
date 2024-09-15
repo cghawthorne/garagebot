@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"github.com/abbot/go-http-auth"
 	"github.com/kardianos/osext"
 	"html/template"
 	"log"
@@ -34,7 +33,7 @@ func createStatusPage(statusChan chan *StatusRequest, db *sql.DB) *StatusPage {
 	if err != nil {
 		log.Panic("Error finding executable folder:", err)
 	}
-	templatePath := filepath.Join(executableFolder, "../src/github.com/cghawthorne/garagebot/templates/statuspage.html")
+	templatePath := filepath.Join(executableFolder, "templates/statuspage.html")
 
 	template, err := template.ParseFiles(templatePath)
 	if err != nil {
@@ -49,7 +48,7 @@ func makeStatusRequest() *StatusRequest {
 	return &StatusRequest{make(StatusUpdateChan, 1)}
 }
 
-func (s *StatusPage) handle(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+func (s *StatusPage) handle(w http.ResponseWriter, r *AuthenticatedRequest) {
 	// The "/" pattern matches everything, so we need to check
 	// that we're at the root here.
 	if r.Request.URL.Path != "/" {

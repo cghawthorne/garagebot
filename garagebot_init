@@ -14,7 +14,7 @@
 # chmod +x /etc/init.d/garagebot
 # update-rc.d garagebot defaults
 
-dir="/home/pi/s/bin/"
+dir="/home/garagebot/garagebot/"
 cmd="./garagebot"
 user="root"
 

@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"github.com/abbot/go-http-auth"
-	"github.com/stianeikeland/go-rpio"
+	"github.com/warthog618/go-gpiocdev"
+	"github.com/warthog618/go-gpiocdev/device/rpi"
 	"log"
 	"net/http"
 	"time"
@@ -38,11 +38,15 @@ type DoorControlRequest struct {
 
 func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 	doorControl := &DoorControl{make(chan *DoorControlRequest)}
-	pin := rpio.Pin(24)
-	pin.Output()
-	pin.High() // High == relay off
 
 	go func() {
+		// High == relay off
+		line, err := gpiocdev.RequestLine("gpiochip0", rpi.J8p18, gpiocdev.AsOutput(1))
+		if err != nil {
+			log.Print("Error initializing line: ", err)
+		}
+		defer line.Close()
+
 		state := IDLE
 		for req := range doorControl.doorControlRequest {
 			log.Printf("Got door control request: %v", req)
@@ -56,10 +60,13 @@ func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 				_, err := db.Exec("INSERT INTO events (type, username) VALUES (?, ?)",
 					"deactivate", req.Username)
 				if err != nil {
-					log.Print("Error writing to database:", err)
+					log.Print("Error writing to database: ", err)
 				}
 				// turn off circuit
-				pin.High()
+				err = line.SetValue(1)
+				if err != nil {
+					log.Print("Error setting line value: ", err)
+				}
 				state = IDLE
 			case CIRCUIT_ACTIVE:
 				if state != IDLE {
@@ -70,10 +77,13 @@ func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 				_, err := db.Exec("INSERT INTO events (type, username) VALUES (?, ?)",
 					"activate", req.Username)
 				if err != nil {
-					log.Print("Error writing to database:", err)
+					log.Print("Error writing to database: ", err)
 				}
 				// turn on circuit
-				pin.Low()
+				err = line.SetValue(0)
+				if err != nil {
+					log.Print("Error setting line value: ", err)
+				}
 				state = CIRCUIT_ACTIVE
 				// turn off the circuit after a delay
 				time.AfterFunc(time.Duration(config.DoorControl.ActivationPeriodMillis)*time.Millisecond, func() {
@@ -89,7 +99,7 @@ func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 	return doorControl
 }
 
-func (d *DoorControl) handle(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
+func (d *DoorControl) handle(w http.ResponseWriter, r *AuthenticatedRequest) {
 	// Only POST requests allowed
 	if r.Request.Method != "POST" {
 		http.Error(w, "405 Method not allowed", http.StatusMethodNotAllowed)
