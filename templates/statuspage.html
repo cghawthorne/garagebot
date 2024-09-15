@@ -3,6 +3,12 @@
 	<title>Garagebot</title>
 	<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
 	<style>
+		table {
+			font-size: x-small;
+		}
+		form {
+			margin-bottom: 0;
+		}
 		.event:first-child .open,
 		.event:first-child .activate,
 		.event:first-child .deactivate,
@@ -36,6 +42,10 @@
 		<p>Garage door is: <span class="{{.DoorStatus}}">{{.DoorStatus}}</span></p>
 	</div>
 	<hr>
+	<form action="doorcontrol" method="POST" onsubmit="return confirm('Are you sure you want to activate the door?');">
+		<input type="submit" value="Activate Door">
+	</form>
+	<hr>
 	<table>
 		{{range .DoorLog}}
 		<tr class="event">
@@ -45,10 +55,6 @@
 		</tr>
 		{{end}}
 	</table>
-	<hr>
-	<form action="doorcontrol" method="POST" onsubmit="return confirm('Are you sure you want to activate the door?');">
-		<input type="submit" value="Activate Door">
-	</form>
 </body>
 </html>
 
