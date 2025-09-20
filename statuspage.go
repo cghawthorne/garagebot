@@ -59,6 +59,7 @@ func (s *StatusPage) handle(w http.ResponseWriter, r *AuthenticatedRequest) {
 	// Only GET requests allowed
 	if r.Request.Method != "GET" {
 		http.Error(w, "405 Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
 	statusPageData := &StatusPageData{Username: r.Username}
