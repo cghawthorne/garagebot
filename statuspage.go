@@ -70,6 +70,13 @@ func (s *StatusPage) handle(w http.ResponseWriter, r *AuthenticatedRequest) {
 	rows, err := s.db.Query("SELECT ts, type, username FROM events WHERE ts >= NOW() - INTERVAL 1 WEEK ORDER BY ts DESC LIMIT 1000")
 	if err != nil {
 		log.Print("Error querying database: ", err)
+		http.Error(w, "Unable to load recent events", http.StatusInternalServerError)
+		return
+	}
+	if rows == nil {
+		log.Print("Database returned no rows result")
+		http.Error(w, "Unable to load recent events", http.StatusInternalServerError)
+		return
 	}
 	defer rows.Close()
 	for rows.Next() {
