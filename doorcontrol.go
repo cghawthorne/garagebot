@@ -100,6 +100,11 @@ func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 }
 
 func (d *DoorControl) handle(w http.ResponseWriter, r *AuthenticatedRequest) {
+	if r.Request.Method == "GET" {
+		http.Redirect(w, &r.Request, "/", http.StatusFound)
+		return
+	}
+
 	// Only POST requests allowed
 	if r.Request.Method != "POST" {
 		http.Error(w, "405 Method not allowed", http.StatusMethodNotAllowed)
