@@ -259,7 +259,21 @@
                         margin-top: 0.35rem;
                         font-size: 0.95rem;
                         font-weight: 600;
-                        white-space: nowrap;
+                }
+
+                .log-value.timestamp {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.2rem;
+                        line-height: 1.35;
+                }
+
+                .log-value.timestamp .time {
+                        color: var(--text-muted);
+                        font-size: 0.85rem;
+                        font-weight: 500;
+                        letter-spacing: 0.02em;
+                        text-transform: uppercase;
                 }
 
                 .status-badge {
@@ -478,7 +492,33 @@
                                         item.className = "log-entry";
 
                                         const timeColumn = document.createElement("div");
-                                        timeColumn.innerHTML = `<div class="log-label">When</div><div class="log-value">${event.time}</div>`;
+                                        const timeLabel = document.createElement("div");
+                                        timeLabel.className = "log-label";
+                                        timeLabel.textContent = "When";
+
+                                        const timeValue = document.createElement("div");
+                                        timeValue.className = "log-value timestamp";
+
+                                        if (typeof event.time === "string" && event.time.trim().length > 0) {
+                                                const parts = event.time.trim().split(/\s+/);
+                                                if (parts.length >= 3) {
+                                                        const dateSpan = document.createElement("span");
+                                                        dateSpan.className = "date";
+                                                        dateSpan.textContent = parts[0];
+
+                                                        const timeSpan = document.createElement("span");
+                                                        timeSpan.className = "time";
+                                                        timeSpan.textContent = parts.slice(1).join(" ");
+
+                                                        timeValue.append(dateSpan, timeSpan);
+                                                } else {
+                                                        timeValue.textContent = event.time;
+                                                }
+                                        } else {
+                                                timeValue.textContent = "—";
+                                        }
+
+                                        timeColumn.append(timeLabel, timeValue);
 
                                         const typeColumn = document.createElement("div");
                                         const normalizedType = normalizeType(event.type);
