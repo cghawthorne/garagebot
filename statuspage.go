@@ -27,9 +27,9 @@ type StatusResponse struct {
 }
 
 type DoorEventRecord struct {
-	Time     string  `json:"time"`
-	Type     string  `json:"type"`
-	Username *string `json:"username,omitempty"`
+	Time     string `json:"time"`
+	Type     string `json:"type"`
+	Username string `json:"username,omitempty"`
 }
 
 func createStatusPage(statusChan chan *StatusRequest, db *sql.DB) *StatusPage {
@@ -101,7 +101,7 @@ func (s *StatusPage) loadStatusData() (*StatusResponse, error) {
 			Type: event,
 		}
 		if username.Valid {
-			record.Username = &username.String
+			record.Username = username.String
 		}
 		doorLog = append(doorLog, record)
 	}
