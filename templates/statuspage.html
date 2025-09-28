@@ -90,11 +90,11 @@
                         font-size: 0.95rem;
                 }
 
-                main {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-                        gap: clamp(1.5rem, 4vw, 2.5rem);
-                }
+               main {
+                       display: flex;
+                       flex-direction: column;
+                       gap: clamp(1.5rem, 4vw, 2.5rem);
+               }
 
                 .panel {
                         background: var(--surface);
