@@ -295,12 +295,19 @@
 
                 .log-entry {
                         display: grid;
-                        grid-template-columns: minmax(160px, 0.9fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr);
-                        gap: 0.75rem;
+                        grid-template-columns: minmax(160px, 1fr) minmax(140px, 1fr) minmax(120px, max-content);
+                        gap: clamp(0.75rem, 2vw, 1.25rem);
                         padding: 0.85rem 1rem;
                         border-radius: 12px;
                         background: #1b1f27;
                         border: 1px solid #2d333b;
+                }
+
+                .log-entry .value {
+                        margin-top: 0.25rem;
+                        font-size: 0.95rem;
+                        font-weight: 600;
+                        white-space: nowrap;
                 }
 
                 .log-entry .label {
@@ -308,12 +315,6 @@
                         font-size: 0.7rem;
                         letter-spacing: 0.12em;
                         color: var(--text-muted);
-                }
-
-                .log-entry .value {
-                        margin-top: 0.25rem;
-                        font-size: 0.95rem;
-                        font-weight: 600;
                 }
 
                 .empty-state {
