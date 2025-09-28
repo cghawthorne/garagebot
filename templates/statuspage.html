@@ -1,60 +1,614 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-	<title>Garagebot</title>
-	<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
-	<style>
-		table {
-			font-size: x-small;
-		}
-		form {
-			margin-bottom: 0;
-		}
-		.event:first-child .open,
-		.event:first-child .activate,
-		.event:first-child .deactivate,
-		.current .open,
-		.current .activate,
-		.current .deactivate {
-			color: white;
-			background-color: red;
-		}
-		.event:first-child .closed,
-		.current .closed {
-			color: white;
-			background-color: green;
-		}
-		.open,
-		.activate,
-		.deactivate {
-			background-color: lightpink;
-		}
-		.closed {
-			background-color: lightgreen;
-		}
-		.startup {
-			color: gray;
-		}
-	</style>
+        <meta charset="utf-8">
+        <title>Garagebot</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+                :root {
+                        color-scheme: dark;
+                        --page-bg: #000000;
+                        --surface: #111217;
+                        --surface-muted: #15161c;
+                        --border: #1f2027;
+                        --border-strong: #2b2c35;
+                        --text-primary: #f7f8fa;
+                        --text-muted: #a1a6b4;
+                        --accent: #4493f8;
+                        --success-bg: rgba(63, 185, 80, 0.15);
+                        --success-text: #3fb950;
+                        --danger-bg: rgba(255, 107, 107, 0.18);
+                        --danger-text: #ff7b72;
+                        --info-bg: rgba(88, 166, 255, 0.16);
+                        --info-text: #6cb6ff;
+                }
+
+                *, *::before, *::after {
+                        box-sizing: border-box;
+                }
+
+                body {
+                        margin: 0;
+                        min-height: 100vh;
+                        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+                        background: var(--page-bg);
+                        color: var(--text-primary);
+                        line-height: 1.5;
+                }
+
+                .page {
+                        max-width: 960px;
+                        margin: 0 auto;
+                        padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.25rem, 4vw, 3rem);
+                        display: flex;
+                        flex-direction: column;
+                        gap: clamp(2rem, 5vw, 3rem);
+                }
+
+                header {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 1.25rem;
+                }
+
+                .brand {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.85rem;
+                }
+
+                .brand-mark {
+                        width: 2.75rem;
+                        height: 2.75rem;
+                        border-radius: 0.9rem;
+                        display: grid;
+                        place-items: center;
+                        background: var(--surface);
+                        border: 1px solid var(--border);
+                        font-weight: 700;
+                        letter-spacing: 0.04em;
+                }
+
+                .brand h1 {
+                        margin: 0;
+                        font-size: clamp(1.4rem, 4vw, 1.9rem);
+                        font-weight: 600;
+                        letter-spacing: 0.02em;
+                }
+
+                .user-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.55rem;
+                        padding: 0.55rem 1rem;
+                        border-radius: 999px;
+                        background: var(--surface);
+                        border: 1px solid var(--border);
+                        color: var(--text-muted);
+                        font-size: 0.95rem;
+                }
+
+               main {
+                       display: flex;
+                       flex-direction: column;
+                       gap: clamp(1.5rem, 4vw, 2.5rem);
+               }
+
+                .panel {
+                        background: var(--surface);
+                        border: 1px solid var(--border);
+                        border-radius: 18px;
+                        padding: clamp(1.5rem, 4vw, 2rem);
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1.5rem;
+                }
+
+                .panel header,
+                .panel h2 {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin: 0;
+                        font-size: 0.95rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.18em;
+                        color: var(--text-muted);
+                }
+
+                .status-indicator {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.75rem;
+                }
+
+                .status-chip {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.65rem;
+                        align-self: flex-start;
+                        padding: 0.75rem 1.2rem;
+                        border-radius: 12px;
+                        background: var(--surface-muted);
+                        border: 1px solid var(--border-strong);
+                        font-size: clamp(1.5rem, 4vw, 2.1rem);
+                        font-weight: 600;
+                        letter-spacing: 0.04em;
+                        transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+                }
+
+                .status-chip::before {
+                        content: "";
+                        width: 0.75rem;
+                        height: 0.75rem;
+                        border-radius: 50%;
+                        background: var(--text-muted);
+                }
+
+                .status-chip.open {
+                        background: var(--danger-bg);
+                        border-color: rgba(255, 123, 114, 0.45);
+                        color: var(--danger-text);
+                }
+
+                .status-chip.open::before {
+                        background: var(--danger-text);
+                }
+
+                .status-chip.closed {
+                        background: var(--success-bg);
+                        border-color: rgba(63, 185, 80, 0.45);
+                        color: var(--success-text);
+                }
+
+                .status-chip.closed::before {
+                        background: var(--success-text);
+                }
+
+                .status-chip.startup::before {
+                        background: #f2cc60;
+                }
+
+                .controls {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 0.75rem;
+                }
+
+                button {
+                        appearance: none;
+                        border: 1px solid var(--border);
+                        border-radius: 999px;
+                        padding: 0.65rem 1.35rem;
+                        font-size: 0.95rem;
+                        font-weight: 600;
+                        letter-spacing: 0.02em;
+                        color: var(--text-primary);
+                        background: var(--surface-muted);
+                        cursor: pointer;
+                        transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+                }
+
+                button.primary {
+                        background: var(--accent);
+                        border-color: var(--accent);
+                        color: #0b1019;
+                }
+
+                button:hover:not(:disabled) {
+                        transform: translateY(-1px);
+                        border-color: var(--accent);
+                }
+
+                button:disabled {
+                        opacity: 0.6;
+                        cursor: wait;
+                        transform: none;
+                }
+
+                .meta {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        color: var(--text-muted);
+                        font-size: 0.9rem;
+                }
+
+                .meta .dot {
+                        width: 0.35rem;
+                        height: 0.35rem;
+                        border-radius: 50%;
+                        background: var(--border-strong);
+                }
+
+                .log-list {
+                        list-style: none;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0;
+                        border-radius: 12px;
+                        border: 1px solid var(--border);
+                        overflow: hidden;
+                        background: var(--surface-muted);
+                }
+
+                .log-entry {
+                        display: grid;
+                        grid-template-columns: minmax(140px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr);
+                        gap: 1.25rem;
+                        padding: 1rem 1.25rem;
+                        border-bottom: 1px solid var(--border-strong);
+                }
+
+                .log-entry:last-child {
+                        border-bottom: none;
+                }
+
+                .log-label {
+                        text-transform: uppercase;
+                        font-size: 0.7rem;
+                        letter-spacing: 0.14em;
+                        color: var(--text-muted);
+                }
+
+                .log-value {
+                        margin-top: 0.35rem;
+                        font-size: 0.95rem;
+                        font-weight: 600;
+                }
+
+                .log-value.timestamp {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.2rem;
+                        line-height: 1.35;
+                }
+
+                .log-value.timestamp .time {
+                        color: var(--text-muted);
+                        font-size: 0.85rem;
+                        font-weight: 500;
+                        letter-spacing: 0.02em;
+                        text-transform: uppercase;
+                }
+
+                .status-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.45rem;
+                        padding: 0.35rem 0.8rem;
+                        border-radius: 999px;
+                        border: 1px solid transparent;
+                        font-size: 0.8rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.12em;
+                        font-weight: 600;
+                }
+
+                .status-badge.open {
+                        color: var(--danger-text);
+                        background: var(--danger-bg);
+                        border-color: rgba(255, 123, 114, 0.4);
+                }
+
+                .status-badge.closed {
+                        color: var(--success-text);
+                        background: var(--success-bg);
+                        border-color: rgba(63, 185, 80, 0.4);
+                }
+
+                .status-badge.activate,
+                .status-badge.deactivate {
+                        color: var(--info-text);
+                        background: var(--info-bg);
+                        border-color: rgba(88, 166, 255, 0.35);
+                }
+
+                .status-badge.startup {
+                        color: #f2cc60;
+                        background: rgba(242, 204, 96, 0.18);
+                        border-color: rgba(242, 204, 96, 0.4);
+                }
+
+                .empty-state {
+                        padding: 1.5rem;
+                        text-align: center;
+                        color: var(--text-muted);
+                        font-size: 0.95rem;
+                }
+
+                .toast {
+                        position: fixed;
+                        left: 50%;
+                        bottom: 1.75rem;
+                        transform: translateX(-50%);
+                        padding: 0.75rem 1.4rem;
+                        border-radius: 999px;
+                        background: var(--surface);
+                        border: 1px solid var(--border);
+                        color: var(--text-primary);
+                        opacity: 0;
+                        pointer-events: none;
+                        transition: opacity 180ms ease, transform 180ms ease;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.6rem;
+                        font-size: 0.95rem;
+                }
+
+                .toast.show {
+                        opacity: 1;
+                        transform: translate(-50%, -6px);
+                        pointer-events: auto;
+                }
+
+                .toast.success {
+                        border-color: rgba(63, 185, 80, 0.45);
+                        color: var(--success-text);
+                }
+
+                .toast.error {
+                        border-color: rgba(255, 123, 114, 0.45);
+                        color: var(--danger-text);
+                }
+
+                @media (max-width: 720px) {
+                        header {
+                                flex-direction: column;
+                                align-items: flex-start;
+                        }
+
+                        .log-entry {
+                                grid-template-columns: 1fr;
+                                gap: 0.75rem;
+                        }
+
+                        button {
+                                width: 100%;
+                                justify-content: center;
+                        }
+                }
+        </style>
 </head>
-<body>
-	<p>Hello, {{.Username}}</p>
-	<div class="current">
-		<p>Garage door is: <span class="{{.DoorStatus}}">{{.DoorStatus}}</span></p>
-	</div>
-	<hr>
-	<form action="doorcontrol" method="POST" onsubmit="return confirm('Are you sure you want to activate the door?');">
-		<input type="submit" value="Activate Door">
-	</form>
-	<hr>
-	<table>
-		{{range .DoorLog}}
-		<tr class="event">
-			<td>{{.Time}}</td>
-			<td class="{{.Type}}">{{.Type}}</td>
-			<td>{{if .Username.Valid}}{{.Username.Value}}{{end}}</td>
-		</tr>
-		{{end}}
-	</table>
+<body data-username="{{.Username}}">
+        <div class="page">
+                <header>
+                        <div class="brand">
+                                <div class="brand-mark">GB</div>
+                                <h1>Garage Door</h1>
+                        </div>
+                        <div class="user-badge">
+                                <span>Signed in as</span>
+                                <strong id="current-user">{{.Username}}</strong>
+                        </div>
+                </header>
+
+                <main>
+                        <section class="panel">
+                                <h2>Live Status</h2>
+                                <div class="status-indicator">
+                                        <span id="status-indicator" class="status-chip startup">Loading…</span>
+                                        <div class="meta">
+                                                <span>Last updated</span>
+                                                <span class="dot"></span>
+                                                <time id="last-updated" datetime="">waiting…</time>
+                                        </div>
+                                </div>
+                                <div class="controls">
+                                        <button id="activate-button" class="primary" type="button">Activate Door</button>
+                                        <button id="refresh-button" type="button">Refresh</button>
+                                </div>
+                        </section>
+
+                        <section class="panel">
+                                <h2>Recent Activity</h2>
+                                <ul id="log-list" class="log-list">
+                                        <li class="empty-state">Pulling the latest events…</li>
+                                </ul>
+                        </section>
+                </main>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite">
+                <span id="toast-message"></span>
+        </div>
+
+        <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                        const statusIndicator = document.getElementById("status-indicator");
+                        const lastUpdated = document.getElementById("last-updated");
+                        const logList = document.getElementById("log-list");
+                        const activateButton = document.getElementById("activate-button");
+                        const refreshButton = document.getElementById("refresh-button");
+                        const toast = document.getElementById("toast");
+                        const toastMessage = document.getElementById("toast-message");
+                        const username = document.body.dataset.username;
+
+                        let pollTimer;
+                        let toastTimer;
+
+                        const statusClassMap = {
+                                open: "open",
+                                closed: "closed",
+                                startup: "startup",
+                                unknown: "startup"
+                        };
+
+                        const typeBadgeClassMap = {
+                                open: "open",
+                                closed: "closed",
+                                activate: "activate",
+                                deactivate: "deactivate",
+                                startup: "startup"
+                        };
+
+                        function normalizeType(type = "") {
+                                return type.toLowerCase();
+                        }
+
+                        function setStatus(status) {
+                                const normalized = normalizeType(status);
+                                statusIndicator.className = `status-chip ${statusClassMap[normalized] || ""}`;
+                                statusIndicator.textContent = normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Unknown";
+                        }
+
+                        function showToast(message, isError = false) {
+                                toastMessage.textContent = message;
+                                toast.classList.remove("success", "error");
+                                toast.classList.add(isError ? "error" : "success", "show");
+
+                                clearTimeout(toastTimer);
+                                toastTimer = setTimeout(() => {
+                                        toast.classList.remove("show");
+                                }, 2600);
+                        }
+
+                        function formatType(type) {
+                                if (!type) return "";
+                                return type
+                                        .replace(/_/g, " ")
+                                        .split(" ")
+                                        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                                        .join(" ");
+                        }
+
+                        function renderEvents(events) {
+                                logList.innerHTML = "";
+
+                                if (!events || events.length === 0) {
+                                        const empty = document.createElement("li");
+                                        empty.className = "empty-state";
+                                        empty.textContent = "No events recorded in the past week.";
+                                        logList.appendChild(empty);
+                                        return;
+                                }
+
+                                events.forEach(event => {
+                                        const item = document.createElement("li");
+                                        item.className = "log-entry";
+
+                                        const timeColumn = document.createElement("div");
+                                        const timeLabel = document.createElement("div");
+                                        timeLabel.className = "log-label";
+                                        timeLabel.textContent = "When";
+
+                                        const timeValue = document.createElement("div");
+                                        timeValue.className = "log-value timestamp";
+
+                                        if (typeof event.time === "string" && event.time.trim().length > 0) {
+                                                const parts = event.time.trim().split(/\s+/);
+                                                if (parts.length >= 3) {
+                                                        const dateSpan = document.createElement("span");
+                                                        dateSpan.className = "date";
+                                                        dateSpan.textContent = parts[0];
+
+                                                        const timeSpan = document.createElement("span");
+                                                        timeSpan.className = "time";
+                                                        timeSpan.textContent = parts.slice(1).join(" ");
+
+                                                        timeValue.append(dateSpan, timeSpan);
+                                                } else {
+                                                        timeValue.textContent = event.time;
+                                                }
+                                        } else {
+                                                timeValue.textContent = "—";
+                                        }
+
+                                        timeColumn.append(timeLabel, timeValue);
+
+                                        const typeColumn = document.createElement("div");
+                                        const normalizedType = normalizeType(event.type);
+                                        const typeClass = typeBadgeClassMap[normalizedType] || "";
+                                        typeColumn.innerHTML = `<div class="log-label">Event</div><div class="log-value"><span class="status-badge ${typeClass}">${formatType(event.type)}</span></div>`;
+
+                                        const userColumn = document.createElement("div");
+                                        const userValue = event.username && event.username.trim() !== "" ? event.username : "—";
+                                        userColumn.innerHTML = `<div class="log-label">User</div><div class="log-value">${userValue}</div>`;
+
+                                        item.append(timeColumn, typeColumn, userColumn);
+                                        logList.appendChild(item);
+                                });
+                        }
+
+                        async function fetchStatus(showSuccess = false) {
+                                try {
+                                        const response = await fetch("/api/status", { cache: "no-store" });
+                                        if (!response.ok) {
+                                                throw new Error(`Status request failed with ${response.status}`);
+                                        }
+
+                                        const payload = await response.json();
+                                        setStatus(payload.doorStatus);
+                                        renderEvents(payload.doorLog);
+
+                                        const now = new Date();
+                                        lastUpdated.dateTime = now.toISOString();
+                                        lastUpdated.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+                                        if (showSuccess) {
+                                                showToast("Status refreshed");
+                                        }
+                                } catch (error) {
+                                        console.error("Unable to fetch status", error);
+                                        showToast("Unable to refresh status", true);
+                                }
+                        }
+
+                        async function activateDoor() {
+                                activateButton.disabled = true;
+                                activateButton.textContent = "Sending…";
+                                try {
+                                        const response = await fetch("/api/doorcontrol", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                                                body: JSON.stringify({ username })
+                                        });
+
+                                        if (!response.ok) {
+                                                throw new Error(`Door request failed with ${response.status}`);
+                                        }
+
+                                        showToast("Door activation requested");
+                                        await fetchStatus();
+                                } catch (error) {
+                                        console.error("Unable to activate door", error);
+                                        showToast("Door activation failed", true);
+                                } finally {
+                                        activateButton.disabled = false;
+                                        activateButton.textContent = "Activate Door";
+                                }
+                        }
+
+                        function startPolling() {
+                                pollTimer = setInterval(() => fetchStatus(), 5000);
+                        }
+
+                        function stopPolling() {
+                                if (pollTimer) {
+                                        clearInterval(pollTimer);
+                                        pollTimer = undefined;
+                                }
+                        }
+
+                        activateButton.addEventListener("click", activateDoor);
+                        refreshButton.addEventListener("click", () => fetchStatus(true));
+
+                        document.addEventListener("visibilitychange", () => {
+                                if (document.hidden) {
+                                        stopPolling();
+                                } else {
+                                        fetchStatus();
+                                        startPolling();
+                                }
+                        });
+
+                        fetchStatus();
+                        startPolling();
+                });
+        </script>
 </body>
 </html>
-
