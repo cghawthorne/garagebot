@@ -76,9 +76,10 @@ func main() {
 
 	statusPage := createStatusPage(statusRequests, db)
 	http.HandleFunc("/", page.wrap(statusPage.handle))
+	http.HandleFunc("/api/status", page.wrap(statusPage.apiStatus))
 
 	doorControl := createDoorControl(db, config)
-	http.HandleFunc("/doorcontrol", page.wrap(doorControl.handle))
+	http.HandleFunc("/api/doorcontrol", page.wrap(doorControl.handleAPI))
 
 	http.ListenAndServe(":8080", nil)
 }

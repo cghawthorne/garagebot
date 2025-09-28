@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"github.com/warthog618/go-gpiocdev"
 	"github.com/warthog618/go-gpiocdev/device/rpi"
 	"log"
@@ -99,19 +100,19 @@ func createDoorControl(db *sql.DB, config *Configuration) *DoorControl {
 	return doorControl
 }
 
-func (d *DoorControl) handle(w http.ResponseWriter, r *AuthenticatedRequest) {
-	if r.Request.Method == "GET" {
-		http.Redirect(w, &r.Request, "/", http.StatusFound)
-		return
-	}
-
-	// Only POST requests allowed
+func (d *DoorControl) handleAPI(w http.ResponseWriter, r *AuthenticatedRequest) {
 	if r.Request.Method != "POST" {
 		http.Error(w, "405 Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	log.Print("Requesting circuit activation")
+	log.Print("Requesting circuit activation (API)")
 	d.doorControlRequest <- &DoorControlRequest{r.Username, CIRCUIT_ACTIVE}
-	http.Redirect(w, &r.Request, "", http.StatusFound)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	response := map[string]string{"status": "queued"}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Print("Error encoding door control response: ", err)
+	}
 }

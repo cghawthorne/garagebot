@@ -1,60 +1,516 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-	<title>Garagebot</title>
-	<meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
-	<style>
-		table {
-			font-size: x-small;
-		}
-		form {
-			margin-bottom: 0;
-		}
-		.event:first-child .open,
-		.event:first-child .activate,
-		.event:first-child .deactivate,
-		.current .open,
-		.current .activate,
-		.current .deactivate {
-			color: white;
-			background-color: red;
-		}
-		.event:first-child .closed,
-		.current .closed {
-			color: white;
-			background-color: green;
-		}
-		.open,
-		.activate,
-		.deactivate {
-			background-color: lightpink;
-		}
-		.closed {
-			background-color: lightgreen;
-		}
-		.startup {
-			color: gray;
-		}
-	</style>
+        <meta charset="utf-8">
+        <title>Garagebot</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+                :root {
+                        color-scheme: dark;
+                        --page-bg: #0d1117;
+                        --card-bg: #161b22;
+                        --border: #30363d;
+                        --text-primary: #f0f6fc;
+                        --text-muted: #8b949e;
+                        --accent: #58a6ff;
+                        --success-bg: rgba(63, 185, 80, 0.16);
+                        --success-border: rgba(63, 185, 80, 0.4);
+                        --danger-bg: rgba(255, 123, 114, 0.16);
+                        --danger-border: rgba(255, 123, 114, 0.4);
+                }
+
+                *, *::before, *::after {
+                        box-sizing: border-box;
+                }
+
+                body {
+                        margin: 0;
+                        min-height: 100vh;
+                        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+                        background: var(--page-bg);
+                        color: var(--text-primary);
+                }
+
+                .shell {
+                        max-width: 960px;
+                        margin: 0 auto;
+                        padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2.5rem);
+                        display: flex;
+                        flex-direction: column;
+                        gap: clamp(1.5rem, 3vw, 2.5rem);
+                }
+
+                header {
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: space-between;
+                        align-items: center;
+                        gap: 1rem;
+                }
+
+                .brand {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.75rem;
+                        font-size: clamp(1.3rem, 3vw, 1.75rem);
+                        font-weight: 600;
+                }
+
+                .brand-icon {
+                        width: 2.8rem;
+                        height: 2.8rem;
+                        border-radius: 0.75rem;
+                        background: #21262d;
+                        display: grid;
+                        place-items: center;
+                        font-weight: 700;
+                        letter-spacing: 0.02em;
+                }
+
+                .user-chip {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        padding: 0.5rem 0.9rem;
+                        border-radius: 999px;
+                        background: #1f242b;
+                        border: 1px solid #30363d;
+                        color: var(--text-muted);
+                        font-size: 0.95rem;
+                }
+
+                main {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                        gap: clamp(1.25rem, 3vw, 2rem);
+                }
+
+                .card {
+                        background: var(--card-bg);
+                        border: 1px solid var(--border);
+                        border-radius: 16px;
+                        padding: clamp(1.25rem, 3vw, 1.75rem);
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1.25rem;
+                        box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+                }
+
+                .card h2 {
+                        margin: 0;
+                        font-size: 0.95rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.16em;
+                        color: var(--text-muted);
+                }
+
+                .status-indicator {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.75rem;
+                        padding: 0.75rem 1.1rem;
+                        border-radius: 12px;
+                        font-size: clamp(1.6rem, 4vw, 2.1rem);
+                        font-weight: 600;
+                        letter-spacing: 0.03em;
+                        border: 1px solid #30363d;
+                        background: #1f242b;
+                        transition: background 160ms ease, border-color 160ms ease;
+                }
+
+                .status-indicator::before {
+                        content: "";
+                        width: 0.75rem;
+                        height: 0.75rem;
+                        border-radius: 50%;
+                        background: #8b949e;
+                        box-shadow: 0 0 0 4px rgba(139, 148, 158, 0.25);
+                        transition: background 160ms ease, box-shadow 160ms ease;
+                }
+
+                .status-indicator.open {
+                        color: #ff7b72;
+                        background: var(--danger-bg);
+                        border-color: var(--danger-border);
+                }
+
+                .status-indicator.open::before {
+                        background: #ff7b72;
+                        box-shadow: 0 0 0 4px rgba(255, 123, 114, 0.25);
+                }
+
+                .status-indicator.closed {
+                        color: #3fb950;
+                        background: var(--success-bg);
+                        border-color: var(--success-border);
+                }
+
+                .status-indicator.closed::before {
+                        background: #3fb950;
+                        box-shadow: 0 0 0 4px rgba(63, 185, 80, 0.25);
+                }
+
+                .status-indicator.startup::before {
+                        background: #f2cc60;
+                        box-shadow: 0 0 0 4px rgba(242, 204, 96, 0.22);
+                }
+
+                .button-row {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 0.75rem;
+                }
+
+                button {
+                        appearance: none;
+                        border: 1px solid var(--border);
+                        border-radius: 999px;
+                        padding: 0.65rem 1.3rem;
+                        font-size: 0.95rem;
+                        font-weight: 600;
+                        letter-spacing: 0.02em;
+                        color: var(--text-primary);
+                        background: #1f242b;
+                        cursor: pointer;
+                        transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+                }
+
+                button.primary {
+                        border-color: var(--accent);
+                        background: #1b2330;
+                        color: var(--text-primary);
+                }
+
+                button:hover:not(:disabled) {
+                        transform: translateY(-2px);
+                        border-color: var(--accent);
+                }
+
+                button:disabled {
+                        opacity: 0.6;
+                        cursor: wait;
+                        transform: none;
+                }
+
+                .status-meta {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        font-size: 0.9rem;
+                        color: var(--text-muted);
+                }
+
+                .dot {
+                        width: 0.3rem;
+                        height: 0.3rem;
+                        border-radius: 50%;
+                        background: var(--border);
+                }
+
+                .log-list {
+                        list-style: none;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.75rem;
+                        max-height: 420px;
+                        overflow-y: auto;
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(139, 148, 158, 0.4) transparent;
+                }
+
+                .log-list::-webkit-scrollbar {
+                        width: 6px;
+                }
+
+                .log-list::-webkit-scrollbar-thumb {
+                        background: rgba(139, 148, 158, 0.4);
+                        border-radius: 999px;
+                }
+
+                .log-entry {
+                        display: grid;
+                        grid-template-columns: minmax(160px, 0.9fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr);
+                        gap: 0.75rem;
+                        padding: 0.85rem 1rem;
+                        border-radius: 12px;
+                        background: #1b1f27;
+                        border: 1px solid #2d333b;
+                }
+
+                .log-entry .label {
+                        text-transform: uppercase;
+                        font-size: 0.7rem;
+                        letter-spacing: 0.12em;
+                        color: var(--text-muted);
+                }
+
+                .log-entry .value {
+                        margin-top: 0.25rem;
+                        font-size: 0.95rem;
+                        font-weight: 600;
+                }
+
+                .empty-state {
+                        padding: 2rem 1rem;
+                        text-align: center;
+                        color: var(--text-muted);
+                        border-radius: 12px;
+                        border: 1px dashed #30363d;
+                }
+
+                .toast {
+                        position: fixed;
+                        left: 50%;
+                        bottom: 1.75rem;
+                        transform: translateX(-50%);
+                        padding: 0.75rem 1.4rem;
+                        border-radius: 999px;
+                        background: #161b22;
+                        border: 1px solid var(--border);
+                        color: var(--text-primary);
+                        opacity: 0;
+                        pointer-events: none;
+                        transition: opacity 180ms ease, transform 180ms ease;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.6rem;
+                        font-size: 0.95rem;
+                }
+
+                .toast.show {
+                        opacity: 1;
+                        transform: translate(-50%, -6px);
+                        pointer-events: auto;
+                }
+
+                .toast.success {
+                        border-color: var(--success-border);
+                        color: #3fb950;
+                }
+
+                .toast.error {
+                        border-color: var(--danger-border);
+                        color: #ff7b72;
+                }
+
+                @media (max-width: 720px) {
+                        header {
+                                flex-direction: column;
+                                align-items: flex-start;
+                        }
+
+                        .log-entry {
+                                grid-template-columns: 1fr;
+                        }
+
+                        button {
+                                width: 100%;
+                                justify-content: center;
+                        }
+                }
+        </style>
 </head>
-<body>
-	<p>Hello, {{.Username}}</p>
-	<div class="current">
-		<p>Garage door is: <span class="{{.DoorStatus}}">{{.DoorStatus}}</span></p>
-	</div>
-	<hr>
-	<form action="doorcontrol" method="POST" onsubmit="return confirm('Are you sure you want to activate the door?');">
-		<input type="submit" value="Activate Door">
-	</form>
-	<hr>
-	<table>
-		{{range .DoorLog}}
-		<tr class="event">
-			<td>{{.Time}}</td>
-			<td class="{{.Type}}">{{.Type}}</td>
-			<td>{{if .Username.Valid}}{{.Username.Value}}{{end}}</td>
-		</tr>
-		{{end}}
-	</table>
+<body data-username="{{.Username}}">
+        <div class="shell">
+                <header>
+                        <div class="brand">
+                                <div class="brand-icon">GB</div>
+                                <span>Garage Door</span>
+                        </div>
+                        <div class="user-chip">
+                                <span>Signed in as</span>
+                                <strong id="current-user">{{.Username}}</strong>
+                        </div>
+                </header>
+
+                <main>
+                        <section class="card">
+                                <h2>Live Status</h2>
+                                <div id="status-indicator" class="status-indicator startup">Loading…</div>
+                                <div class="button-row">
+                                        <button id="activate-button" class="primary" type="button">Activate Door</button>
+                                        <button id="refresh-button" type="button">Refresh</button>
+                                </div>
+                                <div class="status-meta">
+                                        <span>Last updated</span>
+                                        <span class="dot"></span>
+                                        <time id="last-updated" datetime="">waiting…</time>
+                                </div>
+                        </section>
+
+                        <section class="card">
+                                <div class="log-header">
+                                        <h2>Recent Activity</h2>
+                                </div>
+                                <ul id="log-list" class="log-list">
+                                        <li class="empty-state">Pulling the latest events…</li>
+                                </ul>
+                        </section>
+                </main>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite">
+                <span id="toast-message"></span>
+        </div>
+
+        <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                        const statusIndicator = document.getElementById("status-indicator");
+                        const lastUpdated = document.getElementById("last-updated");
+                        const logList = document.getElementById("log-list");
+                        const activateButton = document.getElementById("activate-button");
+                        const refreshButton = document.getElementById("refresh-button");
+                        const toast = document.getElementById("toast");
+                        const toastMessage = document.getElementById("toast-message");
+                        const username = document.body.dataset.username;
+
+                        let pollTimer;
+                        let toastTimer;
+
+                        const statusClassMap = {
+                                open: "open",
+                                closed: "closed",
+                                startup: "startup",
+                                unknown: "startup"
+                        };
+
+                        function setStatus(status) {
+                                const normalized = (status || "unknown").toLowerCase();
+                                const statusText = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+                                statusIndicator.textContent = statusText;
+                                statusIndicator.className = `status-indicator ${statusClassMap[normalized] || statusClassMap.unknown}`;
+                        }
+
+                        function showToast(message, isError = false) {
+                                toastMessage.textContent = message;
+                                toast.classList.remove("success", "error");
+                                toast.classList.add(isError ? "error" : "success", "show");
+
+                                if (toastTimer) {
+                                        clearTimeout(toastTimer);
+                                }
+
+                                toastTimer = setTimeout(() => {
+                                        toast.classList.remove("show");
+                                }, 2800);
+                        }
+
+                        function formatType(type) {
+                                if (!type) return "";
+                                return type
+                                        .replace(/_/g, " ")
+                                        .split(" ")
+                                        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                                        .join(" ");
+                        }
+
+                        function renderEvents(events) {
+                                logList.innerHTML = "";
+
+                                if (!events || events.length === 0) {
+                                        const empty = document.createElement("li");
+                                        empty.className = "empty-state";
+                                        empty.textContent = "No events recorded in the past week.";
+                                        logList.appendChild(empty);
+                                        return;
+                                }
+
+                                events.forEach(event => {
+                                        const item = document.createElement("li");
+                                        item.className = "log-entry";
+
+                                        const timeLabel = document.createElement("div");
+                                        timeLabel.innerHTML = `<div class="label">When</div><div class="value">${event.time}</div>`;
+
+                                        const typeLabel = document.createElement("div");
+                                        typeLabel.innerHTML = `<div class="label">Event</div><div class="value">${formatType(event.type)}</div>`;
+
+                                        const userLabel = document.createElement("div");
+                                        const userValue = event.username ? event.username : "—";
+                                        userLabel.innerHTML = `<div class="label">User</div><div class="value">${userValue}</div>`;
+
+                                        item.append(timeLabel, typeLabel, userLabel);
+                                        logList.appendChild(item);
+                                });
+                        }
+
+                        async function fetchStatus(showSuccess = false) {
+                                try {
+                                        const response = await fetch("/api/status", { cache: "no-store" });
+                                        if (!response.ok) {
+                                                throw new Error(`Status request failed with ${response.status}`);
+                                        }
+
+                                        const payload = await response.json();
+                                        setStatus(payload.doorStatus);
+                                        renderEvents(payload.doorLog);
+
+                                        const now = new Date();
+                                        lastUpdated.dateTime = now.toISOString();
+                                        lastUpdated.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+                                        if (showSuccess) {
+                                                showToast("Status refreshed");
+                                        }
+                                } catch (error) {
+                                        console.error("Unable to fetch status", error);
+                                        showToast("Unable to refresh status", true);
+                                }
+                        }
+
+                        async function activateDoor() {
+                                activateButton.disabled = true;
+                                activateButton.textContent = "Sending…";
+                                try {
+                                        const response = await fetch("/api/doorcontrol", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                                                body: JSON.stringify({ username })
+                                        });
+
+                                        if (!response.ok) {
+                                                throw new Error(`Door request failed with ${response.status}`);
+                                        }
+
+                                        showToast("Door activation requested");
+                                        await fetchStatus();
+                                } catch (error) {
+                                        console.error("Unable to activate door", error);
+                                        showToast("Door activation failed", true);
+                                } finally {
+                                        activateButton.disabled = false;
+                                        activateButton.textContent = "Activate Door";
+                                }
+                        }
+
+                        function startPolling() {
+                                pollTimer = setInterval(() => fetchStatus(), 5000);
+                        }
+
+                        function stopPolling() {
+                                if (pollTimer) {
+                                        clearInterval(pollTimer);
+                                        pollTimer = undefined;
+                                }
+                        }
+
+                        activateButton.addEventListener("click", activateDoor);
+                        refreshButton.addEventListener("click", () => fetchStatus(true));
+
+                        document.addEventListener("visibilitychange", () => {
+                                if (document.hidden) {
+                                        stopPolling();
+                                } else {
+                                        fetchStatus();
+                                        startPolling();
+                                }
+                        });
+
+                        fetchStatus();
+                        startPolling();
+                });
+        </script>
 </body>
 </html>
-
