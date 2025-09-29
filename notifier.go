@@ -44,15 +44,18 @@ func notifier(config *Configuration, statusUpdates StatusUpdateChan) {
 	for {
 		select {
 		case <-ticker.C:
-			if !openAlertSent && lastStatus == NOTIFICATION_STATUS && time.Since(statusChange) > timeout {
-				status := fmt.Sprintf("Door has been %v for %v", lastStatus.String(), timeout)
+			elapsed := time.Since(statusChange)
+			if !openAlertSent && lastStatus == NOTIFICATION_STATUS && elapsed > timeout {
+				status := fmt.Sprintf("Door has been %v for %v", lastStatus.String(), elapsed)
 				sendNotificationEmail(config, status)
 				openAlertSent = true
 			}
 		case update := <-statusUpdates:
+			elapsed := time.Since(statusChange)
 			log.Print("Notifier got update:", update)
 			if update == CLOSED && openAlertSent {
-				sendNotificationEmail(config, "Door has closed")
+				status := fmt.Sprintf("Door has closed after being %v for %v", NOTIFICATION_STATUS.String(), elapsed)
+				sendNotificationEmail(config, status)
 			}
 			if update != NOTIFICATION_STATUS {
 				openAlertSent = false
