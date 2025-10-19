@@ -124,6 +124,20 @@
                         gap: 0.75rem;
                 }
 
+                .status-message {
+                        margin: 0;
+                        font-size: 0.95rem;
+                        color: var(--text-muted);
+                }
+
+                .status-message.success {
+                        color: var(--success-text);
+                }
+
+                .status-message.error {
+                        color: var(--danger-text);
+                }
+
                 .status-chip {
                         display: inline-flex;
                         align-items: center;
@@ -397,6 +411,7 @@
                                                 <span class="dot"></span>
                                                 <time id="last-updated" datetime="">waiting…</time>
                                         </div>
+                                        <p id="status-message" class="status-message" role="status" aria-live="polite" hidden></p>
                                 </div>
                                 <div class="controls">
                                         <button id="activate-button" class="primary" type="button">Activate Door</button>
@@ -421,6 +436,7 @@
                 document.addEventListener("DOMContentLoaded", () => {
                         const statusIndicator = document.getElementById("status-indicator");
                         const lastUpdated = document.getElementById("last-updated");
+                        const statusMessage = document.getElementById("status-message");
                         const logList = document.getElementById("log-list");
                         const activateButton = document.getElementById("activate-button");
                         const refreshButton = document.getElementById("refresh-button");
@@ -446,6 +462,9 @@
                                 startup: "startup"
                         };
 
+                        const STATUS_REFRESH_ERROR_MESSAGE = "Unable to refresh status. Try refreshing the page.";
+                        const DOOR_ACTIVATION_ERROR_MESSAGE = "Door activation failed. Try refreshing the page.";
+
                         function normalizeType(type = "") {
                                 return type.toLowerCase();
                         }
@@ -454,6 +473,20 @@
                                 const normalized = normalizeType(status);
                                 statusIndicator.className = `status-chip ${statusClassMap[normalized] || ""}`;
                                 statusIndicator.textContent = normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Unknown";
+                        }
+
+                        function updateStatusMessage(message = null, isError = false) {
+                                if (!statusMessage) return;
+
+                                const content = typeof message === "string" ? message : "";
+
+                                statusMessage.textContent = content;
+                                statusMessage.hidden = content.trim() === "";
+                                statusMessage.classList.remove("success", "error");
+
+                                if (content.trim() !== "") {
+                                        statusMessage.classList.add(isError ? "error" : "success");
+                                }
                         }
 
                         function showToast(message, isError = false) {
@@ -549,12 +582,15 @@
                                         lastUpdated.dateTime = now.toISOString();
                                         lastUpdated.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+                                        updateStatusMessage();
+
                                         if (showSuccess) {
                                                 showToast("Status refreshed");
                                         }
                                 } catch (error) {
                                         console.error("Unable to fetch status", error);
-                                        showToast("Unable to refresh status", true);
+                                        updateStatusMessage(STATUS_REFRESH_ERROR_MESSAGE, true);
+                                        showToast(STATUS_REFRESH_ERROR_MESSAGE, true);
                                 }
                         }
 
@@ -576,7 +612,8 @@
                                         await fetchStatus();
                                 } catch (error) {
                                         console.error("Unable to activate door", error);
-                                        showToast("Door activation failed", true);
+                                        updateStatusMessage(DOOR_ACTIVATION_ERROR_MESSAGE, true);
+                                        showToast(DOOR_ACTIVATION_ERROR_MESSAGE, true);
                                 } finally {
                                         activateButton.disabled = false;
                                         activateButton.textContent = "Activate Door";
