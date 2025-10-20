@@ -14,8 +14,8 @@
 # chmod +x /etc/init.d/garagebot
 # update-rc.d garagebot defaults
 
-dir="/home/garagebot/garagebot/"
-cmd="./garagebot"
+dir="/home/garagebot/garagebot"
+cmd="$dir/garagebot"
 user="root"
 
 name=`basename $0`
@@ -35,13 +35,23 @@ case "$1" in
         echo "Already started"
     else
         echo "Starting $name"
-        cd "$dir"
-        if [ -z "$user" ]; then
-            sudo $cmd &
-        else
-            sudo -u "$user" $cmd &
+
+        if [ ! -d "$dir" ]; then
+            echo "Directory $dir does not exist"
+            exit 1
         fi
-        echo $! > "$pid_file"
+
+        if [ "$(id -u)" -ne 0 ]; then
+            echo "Must be root to start $name"
+            exit 1
+        fi
+
+        if [ -z "$user" ]; then
+            echo "No user configured for $name"
+            exit 1
+        fi
+
+        start-stop-daemon --start --make-pidfile --pidfile "$pid_file" --background --chdir "$dir" --chuid "$user" --exec "$cmd"
         if ! is_running; then
             echo "Unable to start"
             exit 1
